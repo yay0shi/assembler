@@ -1,0 +1,200 @@
+Turbo Assembler	 Version 5.0	    09-26-25 00:20:35	    Page 1
+osn5.asm
+
+
+
+      1					 ﻿.386
+      2	00000000			 .model	flat, stdcall
+      3
+      4					 includelib import32.lib
+      5
+      6					 extrn MessageBoxA:near
+      7					 extrn ExitProcess:near
+      8
+      9					 MessageBox equ	MessageBoxA
+     10		  =0000			 MB_OK equ 0
+     11
+     12	00000000			 .data
+     13	00000000  0200*(00)		 buffer	db 512 dup(0)	     ; буфер для текста
+     14	00000200  45 46	4C 41 47 53 20+	 title_str db 'EFLAGS state :',0
+     15		  73 74	61 74 65 20 3A+
+     16		  00
+     17
+     18	0000020F  00000243r 00000246r +	 flag_ptrs dd offset flag_cf, offset flag_pf, offset flag_af, offset flag_zf, offset	    +
+     19		  00000249r 0000024Cr +	 flag_sf, offset flag_tf, offset flag_if, offset flag_df, offset flag_of, offset flag_iopl, +
+     20		  0000024Fr 00000252r +	 offset	flag_nt, offset	flag_rf, offset	flag_vm
+     21		  00000255r 00000258r +
+     22		  0000025Br 0000025Er +
+     23		  00000263r 00000266r +
+     24		  00000269r
+     25	00000243  43 46	00		 flag_cf    db "CF",0
+     26	00000246  50 46	00		 flag_pf    db "PF",0
+     27	00000249  41 46	00		 flag_af    db "AF",0
+     28	0000024C  5A 46	00		 flag_zf    db "ZF",0
+     29	0000024F  53 46	00		 flag_sf    db "SF",0
+     30	00000252  54 46	00		 flag_tf    db "TF",0
+     31	00000255  49 46	00		 flag_if    db "IF",0
+     32	00000258  44 46	00		 flag_df    db "DF",0
+     33	0000025B  4F 46	00		 flag_of    db "OF",0
+     34	0000025E  49 4F	50 4C 00	 flag_iopl  db "IOPL",0
+     35	00000263  4E 54	00		 flag_nt    db "NT",0
+     36	00000266  52 46	00		 flag_rf    db "RF",0
+     37	00000269  56 4D	00		 flag_vm    db "VM",0
+     38
+     39	0000026C  00 02	04 06 07 08 09+	 flag_bits db 0,2,4,6,7,8,9,10,11,12,14,16,17
+     40		  0A 0B	0C 0E 10 11
+     41		  =000D			 flag_count equ	13
+     42
+     43	00000279			 .code
+     44	00000000			 start:
+     45
+     46					     ; Получаем	EFLAGS
+     47	00000000  9C			     pushfd
+     48	00000001  58			     pop eax
+     49
+     50	00000002  BF 00000000r		     mov edi, offset buffer    ; указатель на буфер
+     51	00000007  33 DB			     xor ebx, ebx	       ; индекс текущего флага
+     52
+     53	00000009			 next_flag:
+     54	00000009  83 FB	0D		     cmp ebx, flag_count
+     55	0000000C  7D 6D	90 90 90 90	     jge show_message	       ; если все флаги обработаны,	    +
+     56					 показать MessageBox
+     57
+Turbo Assembler	 Version 5.0	    09-26-25 00:20:35	    Page 2
+osn5.asm
+
+
+
+     58	00000012  8B 34	9D 0000020Fr	     mov esi, [flag_ptrs + ebx*4]     ;	Текущий адрес имени флага
+     59
+     60	00000019			 copy_name:
+     61	00000019  8A 06			     mov al, [esi]
+     62	0000001B  3C 00			     cmp al, 0
+     63	0000001D  74 0A	90 90 90 90	     je	after_name
+     64	00000023  88 07			     mov [edi],	al
+     65	00000025  46			     inc esi
+     66	00000026  47			     inc edi
+     67	00000027  EB F0			     jmp copy_name
+     68
+     69	00000029			 after_name:
+     70	00000029  C6 07	3A		     mov byte ptr [edi], ':'
+     71	0000002C  47			     inc edi
+     72	0000002D  C6 07	20		     mov byte ptr [edi], ' '
+     73	00000030  47			     inc edi
+     74	00000031  0F B6	93 0000026Cr	     movzx edx,	byte ptr flag_bits[ebx]	 ; edx = номер бита (0..31)
+     75					     ; если	это IOPL  печатаем 2	бита
+     76	00000038  83 FB	09		     cmp ebx, 9
+     77	0000003B  75 21	90 90 90 90	     jne single_bit
+     78
+     79					     ;IOPL
+     80	00000041  0F BA	E0 0D		      bt eax, 13	; старший бит
+     81	00000045  0F 92	C0		     setc al
+     82	00000048  04 30			     add al, '0'
+     83	0000004A  88 07			     mov [edi],	al
+     84	0000004C  47			     inc edi
+     85
+     86	0000004D  0F BA	E0 0C		     bt	eax, 12	       ; младший	бит
+     87	00000051  0F 92	C0		     setc al
+     88	00000054  04 30			     add al, '0'
+     89	00000056  88 07			     mov [edi],	al
+     90	00000058  47			     inc edi
+     91
+     92	00000059  EB 0F	90 90 90	     jmp after_value
+     93
+     94	0000005E			 single_bit:
+     95	0000005E  0F A3	D0		     bt	eax, edx       ; CF  бит eax[edx]
+     96	00000061  0F 92	C1		     setc cl	       ; CL = 0/1
+     97	00000064  80 C1	30		     add cl, '0'
+     98	00000067  88 0F			     mov [edi],	cl
+     99	00000069  47			     inc edi
+    100
+    101
+    102	0000006A			 after_value:
+    103	0000006A  C6 07	0D		     mov byte ptr [edi], 13
+    104	0000006D  47			     inc edi
+    105	0000006E  C6 07	0A		     mov byte ptr [edi], 10
+    106	00000071  47			     inc edi
+    107
+    108	00000072  43			     inc ebx	       ; следующий флаг
+    109	00000073  8A 93	0000026Cr	     mov dl, flag_bits[ebx] ; DL = номер следующего бита
+    110	00000079  EB 8E			     jmp next_flag
+    111
+    112	0000007B			 show_message:
+    113					     ; Показываем MessageBox
+    114	0000007B  6A 00			     push 0
+Turbo Assembler	 Version 5.0	    09-26-25 00:20:35	    Page 3
+osn5.asm
+
+
+
+    115	0000007D  68 00000200r		     push offset title_str
+    116	00000082  68 00000000r		     push offset buffer
+    117	00000087  6A 00			     push MB_OK
+    118	00000089  E8 00000000e		     call MessageBox
+    119
+    120					     ; Завершение процесса
+    121	0000008E  6A 00			     push 0
+    122	00000090  E8 00000000e		     call ExitProcess
+    123
+    124					 end start
+Turbo Assembler	 Version 5.0	    09-26-25 00:20:35	    Page 4
+Symbol Table
+
+
+
+
+Symbol Name		Type   Value			   Cref	(defined at #)
+
+??date			Text   "09-26-25"
+??filename		Text   "osn5	"
+??time			Text   "00:20:35"
+??version		Number 0500
+@32Bit			Text   1			   #2
+@CodeSize		Text   0			   #2
+@Cpu			Text   0F0FH			   #1
+@DataSize		Text   0			   #2
+@FileName		Text   osn5
+@Interface		Text   003h			   #2
+@Model			Text   1			   #2
+@WordSize		Text   4			   #1  #12  #43
+@code			Text   FLAT			   #2
+@curseg			Text   _TEXT			   #12	#43
+@data			Text   FLAT			   #2
+@stack			Text   FLAT			   #2
+ExitProcess		Near32 ----:---- Extern		   #7  122
+MB_OK			Number 0000			   #10	117
+MessageBox		Alias  MessageBoxA		   #9  118
+MessageBoxA		Near32 ----:---- Extern		   #6  118
+after_name		Near32 FLAT:0029		   63  #69
+after_value		Near32 FLAT:006A		   92  #102
+buffer			Byte   FLAT:0000		   #13	50  116
+copy_name		Near32 FLAT:0019		   #60	67
+flag_af			Byte   FLAT:0249		   18  #27
+flag_bits		Byte   FLAT:026C		   #39	74  109
+flag_cf			Byte   FLAT:0243		   18  #25
+flag_count		Number 000D			   #41	54
+flag_df			Byte   FLAT:0258		   18  #32
+flag_if			Byte   FLAT:0255		   18  #31
+flag_iopl		Byte   FLAT:025E		   18  #34
+flag_nt			Byte   FLAT:0263		   18  #35
+flag_of			Byte   FLAT:025B		   18  #33
+flag_pf			Byte   FLAT:0246		   18  #26
+flag_ptrs		Dword  FLAT:020F		   #18	58
+flag_rf			Byte   FLAT:0266		   18  #36
+flag_sf			Byte   FLAT:024F		   18  #29
+flag_tf			Byte   FLAT:0252		   18  #30
+flag_vm			Byte   FLAT:0269		   18  #37
+flag_zf			Byte   FLAT:024C		   18  #28
+next_flag		Near32 FLAT:0009		   #53	110
+show_message		Near32 FLAT:007B		   55  #112
+single_bit		Near32 FLAT:005E		   77  #94
+start			Near32 FLAT:0000		   #44	124
+title_str		Byte   FLAT:0200		   #14	115
+
+Groups & Segments	Bit Size Align	Combine	Class	   Cref	(defined at #)
+
+DGROUP			Group				   #2
+  _DATA			32  0279 Dword	Public	DATA	   #2  #12
+FLAT			Group				   2
+_TEXT			32  0095 Dword	Public	CODE	   #2  #43
+
