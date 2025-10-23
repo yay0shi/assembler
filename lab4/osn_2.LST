@@ -1,0 +1,145 @@
+Turbo Assembler	 Version 5.0	    09-11-25 11:16:44	    Page 1
+osn_2.asm
+
+
+
+      1					 includelib import32.lib
+      2
+      3					 extrn MessageBoxA:near
+      4					 extrn ExitProcess:near
+      5					 extrn LoadLibraryA:near
+      6					 extrn FreeLibrary:near
+      7					 extrn GetProcAddress:near
+      8					 MessageBox equ	MessageBoxA
+      9
+     10					 .386
+     11	00000000			 .model	flat,stdcall
+     12
+     13	00000000			 .data
+     14	00000000  0C*(??)		     mas db 12 dup(?)	     ; строка + '$' для DOS вывода
+     15	0000000C  7FFFFFFF		     number1 dd	2147483647	     ; число для преобразования
+     16	00000010  0000000C		     number2 dd	12
+     17	00000014  80000000		     number3 dd	-2147483648
+     18	00000018  FFFFFFF4		     number4 dd	-12
+     19	0000001C  72 65	73 75 6C 74 20+	     title_str db 'result :',0
+     20		  3A 00
+     21
+     22	00000025  66 75	6E 63 2E 64 6C+	     dll_name db 'func.dll',0
+     23		  6C 00
+     24	0000002E  4C 6F	6E 67 32 53 74+	     func_name db 'Long2Str',0
+     25		  72 00
+     26	00000037  ????????		     hDll dd ?
+     27	0000003B  ????????		     pLong2Str dd ?	      ;	сюда сохраним адрес функции
+     28
+     29	0000003F			 .code
+     30
+     31	00000000			 start:
+     32					     call LoadLibraryA,	offset dll_name
+1    33	00000000  68 00000025r			 PUSH	 offset	dll_name
+1    34	00000005  E8 00000000e			 CALL	 LoadLibraryA
+     35	0000000A  A3 00000037r		     mov hDll, eax
+     36
+     37					     ; Получаем	адрес Long2Str
+     38					     call GetProcAddress, hDll,	offset func_name
+1    39	0000000F  68 0000002Er			 PUSH	 offset	func_name
+1    40	00000014  FF 35	00000037r		 PUSH	 hDll
+1    41	0000001A  E8 00000000e			 CALL	 GetProcAddress
+     42	0000001F  A3 0000003Br		     mov pLong2Str, eax
+     43
+     44					     ; Цикл	по числам
+     45	00000024  BE 0000000Cr		     lea esi, number1	      ;	Загружаем адрес первого числа	в SI
+     46	00000029  B9 00000004		     mov ecx, 4		      ;	Количество чисел	(4 числа)
+     47
+     48	0000002E			 next_number:
+     49	0000002E  51			     push ecx
+     50	0000002F  8B 06			     mov eax, [esi]	     ; Загружаем текущее число в EAX
+     51					     ;push eax		      ;	Кладём число	в стек
+     52					     ;push offset mas		  ; Кладём адрес буфера строки в    +
+     53					 стек
+     54
+     55
+     56					     call pLong2Str, eax, offset mas	       ; Вызов процедуры		    +
+     57					 преобразования
+Turbo Assembler	 Version 5.0	    09-11-25 11:16:44	    Page 2
+osn_2.asm
+
+
+
+1    58	00000031  68 00000000r			 PUSH	 offset	mas
+1    59	00000036  50				 PUSH	 eax
+1    60	00000037  FF 15	0000003Br		 CALL	 pLong2Str
+     61					     ; ret 8 внутри очистит 6 байт со стека
+     62
+     63					     call MessageBox, 0,  offset mas, offset title_str,	0
+1    64	0000003D  6A 00				 PUSH	 0
+1    65	0000003F  68 0000001Cr			 PUSH	 offset	title_str
+1    66	00000044  68 00000000r			 PUSH	 offset	mas
+1    67	00000049  6A 00				 PUSH	 0
+1    68	0000004B  E8 00000000e			 CALL	 MessageBoxA
+     69
+     70
+     71
+     72					     ; Переходим к следующему числу
+     73	00000050  83 C6	04		     add esi, 4		      ;	Переход к следующему числу	    +
+     74					 (каждое число - 4 байта)
+     75	00000053  59			     pop ecx
+     76	00000054  E2 D8			     loop next_number	     ; Повторяем, пока CX != 0
+     77
+     78					     ; Завершаем программу
+     79					      call ExitProcess,0
+1    80	00000056  6A 00				 PUSH	 0
+1    81	00000058  E8 00000000e			 CALL	 ExitProcess
+     82
+     83
+     84
+     85					 end start
+Turbo Assembler	 Version 5.0	    09-11-25 11:16:44	    Page 3
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??date				  Text	 "09-11-25"
+??filename			  Text	 "osn_2	  "
+??time				  Text	 "11:16:44"
+??version			  Number 0500
+@32Bit				  Text	 1
+@CodeSize			  Text	 0
+@Cpu				  Text	 0F0FH
+@DataSize			  Text	 0
+@FileName			  Text	 osn_2
+@Interface			  Text	 003h
+@Model				  Text	 1
+@WordSize			  Text	 4
+@code				  Text	 FLAT
+@curseg				  Text	 _TEXT
+@data				  Text	 FLAT
+@stack				  Text	 FLAT
+ExitProcess			  Near16 ----:---- Extern
+FreeLibrary			  Near16 ----:---- Extern
+GetProcAddress			  Near16 ----:---- Extern
+LoadLibraryA			  Near16 ----:---- Extern
+MessageBox			  Alias	 MessageBoxA
+MessageBoxA			  Near16 ----:---- Extern
+dll_name			  Byte	 FLAT:0025
+func_name			  Byte	 FLAT:002E
+hDll				  Dword	 FLAT:0037
+mas				  Byte	 FLAT:0000
+next_number			  Near32 FLAT:002E
+number1				  Dword	 FLAT:000C
+number2				  Dword	 FLAT:0010
+number3				  Dword	 FLAT:0014
+number4				  Dword	 FLAT:0018
+pLong2Str			  Dword	 FLAT:003B
+start				  Near32 FLAT:0000
+title_str			  Byte	 FLAT:001C
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  32  003F Dword  Public  DATA
+FLAT				  Group
+_TEXT				  32  005D Dword  Public  CODE
+

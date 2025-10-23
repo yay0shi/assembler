@@ -1,0 +1,127 @@
+Turbo Assembler	 Version 5.0	    09-11-25 11:16:36	    Page 1
+osn.asm
+
+
+
+      1					 ; Основная программа
+      2
+      3					 includelib import32.lib
+      4					 includelib func.lib
+      5					  extrn	MessageBoxA:near
+      6					  extrn	ExitProcess:near
+      7					  ;extrn LoadLibraryA:near
+      8					  ;extrn FreeLibrary:near
+      9					  ;extrn GetProcAddress:near
+     10					  MessageBox equ MessageBoxA
+     11					  ;LoadLibrary equ LoadLibraryA
+     12		  =0000			 MB_OK equ 0000H
+     13
+     14					 .386
+     15	00000000			 .model	flat,stdcall
+     16
+     17	00000000			 .data
+     18	00000000  0C*(??)		     mas db 12 dup(?)	     ; строка + '$' для DOS вывода
+     19	0000000C  7FFFFFFF		     number1 dd	2147483647	     ; число для преобразования
+     20	00000010  0000000C		     number2 dd	12
+     21	00000014  80000000		     number3 dd	-2147483648
+     22	00000018  FFFFFFF4		     number4 dd	-12
+     23	0000001C  72 65	73 75 6C 74 20+	     title_str db 'result :',0
+     24		  3A 00
+     25
+     26	00000025			 .code
+     27
+     28
+     29					 extrn Long2Str:proc
+     30
+     31	00000000			 start:
+     32
+     33					     ; Цикл	по числам
+     34	00000000  BE 0000000Cr		     lea esi, number1	      ;	Загружаем адрес первого числа	в SI
+     35	00000005  B9 00000004		     mov ecx, 4		      ;	Количество чисел	(4 числа)
+     36
+     37	0000000A			 next_number:
+     38	0000000A  51			     push ecx
+     39	0000000B  8B 06			     mov eax, [esi]	     ; Загружаем текущее число в EAX
+     40					     ;push eax		      ;	Кладём число	в стек
+     41					     ;push offset mas		  ; Кладём адрес буфера строки в    +
+     42					 стек
+     43
+     44
+     45					     call Long2Str, eax, offset	mas	      ;	Вызов процедуры		    +
+     46					 преобразования
+1    47	0000000D  68 00000000r			 PUSH	 offset	mas
+1    48	00000012  50				 PUSH	 eax
+1    49	00000013  E8 00000000e			 CALL	 Long2Str
+     50					     ; ret 8 внутри очистит 6 байт со стека
+     51
+     52					     call MessageBox, 0,  offset mas, offset title_str,	0
+1    53	00000018  6A 00				 PUSH	 0
+1    54	0000001A  68 0000001Cr			 PUSH	 offset	title_str
+1    55	0000001F  68 00000000r			 PUSH	 offset	mas
+1    56	00000024  6A 00				 PUSH	 0
+1    57	00000026  E8 00000000e			 CALL	 MessageBoxA
+Turbo Assembler	 Version 5.0	    09-11-25 11:16:36	    Page 2
+osn.asm
+
+
+
+     58
+     59
+     60
+     61					     ; Переходим к следующему числу
+     62	0000002B  83 C6	04		     add esi, 4		      ;	Переход к следующему числу	    +
+     63					 (каждое число - 4 байта)
+     64	0000002E  59			     pop ecx
+     65	0000002F  E2 D9			     loop next_number	     ; Повторяем, пока CX != 0
+     66
+     67					     ; Завершаем программу
+     68					      call ExitProcess,0
+1    69	00000031  6A 00				 PUSH	 0
+1    70	00000033  E8 00000000e			 CALL	 ExitProcess
+     71
+     72					 end start
+Turbo Assembler	 Version 5.0	    09-11-25 11:16:36	    Page 3
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??date				  Text	 "09-11-25"
+??filename			  Text	 "osn	  "
+??time				  Text	 "11:16:36"
+??version			  Number 0500
+@32Bit				  Text	 1
+@CodeSize			  Text	 0
+@Cpu				  Text	 0F0FH
+@DataSize			  Text	 0
+@FileName			  Text	 osn
+@Interface			  Text	 003h
+@Model				  Text	 1
+@WordSize			  Text	 4
+@code				  Text	 FLAT
+@curseg				  Text	 _TEXT
+@data				  Text	 FLAT
+@stack				  Text	 FLAT
+ExitProcess			  Near16 ----:---- Extern
+Long2Str			  Near32 FLAT:---- Extern
+MB_OK				  Number 0000
+MessageBox			  Alias	 MessageBoxA
+MessageBoxA			  Near16 ----:---- Extern
+mas				  Byte	 FLAT:0000
+next_number			  Near32 FLAT:000A
+number1				  Dword	 FLAT:000C
+number2				  Dword	 FLAT:0010
+number3				  Dword	 FLAT:0014
+number4				  Dword	 FLAT:0018
+start				  Near32 FLAT:0000
+title_str			  Byte	 FLAT:001C
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  32  0025 Dword  Public  DATA
+FLAT				  Group
+_TEXT				  32  0038 Dword  Public  CODE
+
